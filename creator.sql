@@ -1,17 +1,12 @@
 
 -- TODO:
-  
--- Fix zero cardinality everywhere, so not everywhere should be NOT NULL in attribute
--- Maybe sponsor name as primary key
+
 -- Can player plays on its own? Like not belongs to any clan? -> Maybe adjust cardinality
+-- Can clan exists on its own, without any player?
 -- Maybe add atribute information about tournament
--- Isnt date of birth redunant or just useless?
+-- Isnt date of birth redunant because of number of birth
 -- Why there is nationality in player?
 -- Logo attribute is like ascii art? Or url to real image?
-
--- ? Isnt attribute skore_prehraneho useless?
--- ? Maybe delete tim_vyhral_zapas table and just add score to zapas table
-
 
 
 DROP TABLE osoba CASCADE CONSTRAINTS;
@@ -30,7 +25,6 @@ DROP TABLE klan_sa_zameriava_na_hru CASCADE CONSTRAINTS;
 DROP TABLE hra_sa_hraje_na_turnaji CASCADE CONSTRAINTS;
 DROP TABLE tim_sa_zucastni_turnaja CASCADE CONSTRAINTS;
 DROP TABLE tim_sa_zucastni_zapasu CASCADE CONSTRAINTS;
-DROP TABLE tim_vyhral_zapas CASCADE CONSTRAINTS;
 DROP TABLE turnaj_sponzoruje_sponzor CASCADE CONSTRAINTS;
 
 
@@ -70,7 +64,7 @@ CREATE TABLE klan(
 CREATE TABLE hrac(
   rodne_cislo NUMBER NOT NULL PRIMARY KEY,
   prezyvka VARCHAR2(50) NOT NULL,
-  klan Number NOT NULL,
+  klan Number,
   CONSTRAINT hrac_rodne_cislo_FK FOREIGN KEY (rodne_cislo) REFERENCES osoba(rodne_cislo),
   CONSTRAINT hrac_klan_FK FOREIGN KEY (klan) REFERENCES klan(id_klanu)
 );
@@ -103,7 +97,11 @@ CREATE TABLE zapas(
   trvanie_hry NUMBER NOT NULL, -- in seconds
   druh_zapasu VARCHAR2(50),
   v_ramci_turnaju NUMBER,
-  CONSTRAINT zapas_turnaj_FK FOREIGN KEY (v_ramci_turnaju) REFERENCES turnaj(id_turnaju),
+  vyherny_tim VARCHAR2(50),
+  skore_vyhercu NUMBER NOT NULL,
+  skore_prehraneho NUMBER NOT NULL,
+  CONSTRAINT zapas_v_ramci_turnaju_FK FOREIGN KEY (v_ramci_turnaju) REFERENCES turnaj(id_turnaju),
+  CONSTRAINT zapas_vyherny_tim_FK FOREIGN KEY (vyherny_tim) REFERENCES tim(nazov_timu),
   CONSTRAINT id_zapasu_has_8_digits CHECK (REGEXP_LIKE(id_zapasu,'^\d{1,8}$'))
 );
 
@@ -165,16 +163,6 @@ CREATE TABLE tim_sa_zucastni_zapasu(
   CONSTRAINT tim_sa_zucastni_zapasu_id_zapasu_FK FOREIGN KEY (id_zapasu) REFERENCES zapas(id_zapasu)
 );
 
-CREATE TABLE tim_vyhral_zapas(
-  nazov_timu VARCHAR2(50) NOT NULL,
-  id_zapasu Number NOT NULL,
-  skore_vyhercu Number,
-  skore_prehraneho Number,
-  CONSTRAINT tim_vyhral_zapas_PK PRIMARY KEY (nazov_timu, id_zapasu),
-  CONSTRAINT tim_vyhral_zapas_nazov_timu_FK FOREIGN KEY (nazov_timu) REFERENCES tim(nazov_timu),
-  CONSTRAINT tim_vyhral_zapas_id_zapasu_FK FOREIGN KEY (id_zapasu) REFERENCES zapas(id_zapasu)
-);
-
 CREATE TABLE turnaj_sponzoruje_sponzor(
   id_turnaju NUMBER NOT NULL,
   id_sponzora NUMBER NOT NULL,
@@ -187,7 +175,7 @@ CREATE TABLE turnaj_sponzoruje_sponzor(
 -- Insert sample data
 -------------------------------------
 
-INSERT INTO osoba VALUES (0156146848, 'Chai', 'Cameron', 'Slovak', TO_DATE('1990-03-01','yyyy-mm-dd'));
+INSERT INTO OSOBA VALUES (0156146848, 'Chai', 'Cameron', 'Slovak', TO_DATE('1990-03-01','yyyy-mm-dd'));
 INSERT INTO osoba VALUES (9960285478, 'Canno', 'Boyer', 'Filipino', TO_DATE('1990-03-01','yyyy-mm-dd'));
 INSERT INTO osoba VALUES (9959080054, 'Kayle', 'Wiley', 'German', TO_DATE('1990-03-01','yyyy-mm-dd'));
 INSERT INTO osoba VALUES (9156288251, 'Rya', 'Nash', 'Australian', TO_DATE('1990-03-01','yyyy-mm-dd'));
@@ -219,7 +207,6 @@ INSERT INTO vybavenie VALUES (203, 'Lenovo N55', 'Dell KB-216','MSI Radeon RX 55
 INSERT INTO vybavenie VALUES (204, 'Lenovo N45', 'Dell KB522','NVIDIA GeForce 550m ','JBL T110',9959080054);
 INSERT INTO vybavenie VALUES (205, 'Lenovo N12', 'A4tech Bloody B120','NVIDIA GeForce 1080','Sony 879 ',9156288251);
 INSERT INTO vybavenie VALUES (206, 'Genius NX-7005', 'Genius KM-210','NVIDIA GeForce 970','Ear pods',9152139172);
-INSERT INTO vybavenie VALUES (207, 'Genius NX-7005', 'Dell KB-216','NVIDIA GeForce 1050','Ear pods',9559101959);
 
 INSERT INTO tim VALUES ('Shallow Desperado');
 INSERT INTO tim VALUES ('Separate Assassins');
@@ -230,39 +217,44 @@ INSERT INTO turnaj VALUES (301, '5000€', 'Shallow Desperado');
 INSERT INTO turnaj VALUES (302, '100€', 'Hateful Voltiac');
 INSERT INTO turnaj VALUES (303, '2000€', 'Shallow Desperado');
 
-INSERT INTO zapas VALUES (401, 45265, 'scrim', NULL);
-INSERT INTO zapas VALUES (402, 45645, 'tournament', 301);
-INSERT INTO zapas VALUES (403, 78789, 'tournament', 301);
-INSERT INTO zapas VALUES (404, 123456, 'tournament', 302);
-INSERT INTO zapas VALUES (405, 685122, 'tournament', 303);
+INSERT INTO zapas VALUES (401, 45265, 'scrim', NULL, 'Four Gangsters', 647, 123);
+INSERT INTO zapas VALUES (402, 45645, 'tournament', 301, 'Shallow Desperado', 988, 456);
+INSERT INTO zapas VALUES (403, 78789, 'tournament', 301, 'Shallow Desperado', 486, 54);
+INSERT INTO zapas VALUES (404, 123456, 'tournament', 302, 'Hateful Voltiac', 775, 56);
+INSERT INTO zapas VALUES (405, 685122, 'tournament', 303, 'Shallow Desperado', 74, 12);
 
 INSERT INTO sponzor VALUES (500, 'Coca cola', 'main');
 INSERT INTO sponzor VALUES (501, 'JBL', 'main');
 INSERT INTO sponzor VALUES (502, 'Nvidia', 'main');
-INSERT INTO sponzor VALUES (503, 'Dell', 'minor');
-
 
 INSERT INTO hrac_hraje_za_tim VALUES (0156146848, 'Shallow Desperado');
+INSERT INTO hrac_hraje_za_tim VALUES (0156146848, 'Separate Assassins');
+INSERT INTO hrac_hraje_za_tim VALUES (0156146848, 'Four Gangsters');
 INSERT INTO hrac_hraje_za_tim VALUES (9960285478, 'Shallow Desperado');
 INSERT INTO hrac_hraje_za_tim VALUES (9959080054, 'Shallow Desperado');
 INSERT INTO hrac_hraje_za_tim VALUES (9156288251, 'Separate Assassins');
-INSERT INTO hrac_hraje_za_tim VALUES (9152139172, 'Four Gangsters');
-INSERT INTO hrac_hraje_za_tim VALUES (9559101959, 'Hateful Voltiac');
+INSERT INTO hrac_hraje_za_tim VALUES (9152139172, 'Hateful Voltiac');
 
 INSERT INTO hrac_sa_zameriava_na_hru VALUES (0156146848, 000);
 INSERT INTO hrac_sa_zameriava_na_hru VALUES (9960285478, 000);
 INSERT INTO hrac_sa_zameriava_na_hru VALUES (9959080054, 001);
-INSERT INTO hrac_sa_zameriava_na_hru VALUES (9156288251, 001);
-INSERT INTO hrac_sa_zameriava_na_hru VALUES (9152139172, 002);
+INSERT INTO hrac_sa_zameriava_na_hru VALUES (9156288251, 002);
+INSERT INTO hrac_sa_zameriava_na_hru VALUES (9152139172, 001);
+INSERT INTO hrac_sa_zameriava_na_hru VALUES (9559101959, 001);
+INSERT INTO hrac_sa_zameriava_na_hru VALUES (9559101959, 002);
 INSERT INTO hrac_sa_zameriava_na_hru VALUES (9559101959, 003);
 
 INSERT INTO klan_sa_zameriava_na_hru VALUES (100, 000);
 INSERT INTO klan_sa_zameriava_na_hru VALUES (101, 000);
+INSERT INTO klan_sa_zameriava_na_hru VALUES (101, 001);
+INSERT INTO klan_sa_zameriava_na_hru VALUES (101, 002);
 INSERT INTO klan_sa_zameriava_na_hru VALUES (102, 002);
-INSERT INTO klan_sa_zameriava_na_hru VALUES (103, 003);
+INSERT INTO klan_sa_zameriava_na_hru VALUES (103, 002);
 
 INSERT INTO hra_sa_hraje_na_turnaji VALUES (000, 301);
-INSERT INTO hra_sa_hraje_na_turnaji VALUES (001, 301);
+INSERT INTO hra_sa_hraje_na_turnaji VALUES (000, 302);
+INSERT INTO hra_sa_hraje_na_turnaji VALUES (000, 303);
+INSERT INTO hra_sa_hraje_na_turnaji VALUES (001, 302);
 INSERT INTO hra_sa_hraje_na_turnaji VALUES (002, 302);
 INSERT INTO hra_sa_hraje_na_turnaji VALUES (002, 303);
 
@@ -284,12 +276,6 @@ INSERT INTO tim_sa_zucastni_zapasu VALUES ('Hateful Voltiac', 404);
 INSERT INTO tim_sa_zucastni_zapasu VALUES ('Separate Assassins', 404);
 INSERT INTO tim_sa_zucastni_zapasu VALUES ('Hateful Voltiac', 405);
 INSERT INTO tim_sa_zucastni_zapasu VALUES ('Shallow Desperado', 405);
-
-INSERT INTO tim_vyhral_zapas VALUES ('Four Gangsters', 401, 647, 123);
-INSERT INTO tim_vyhral_zapas VALUES ('Shallow Desperado', 402, 988, 456);
-INSERT INTO tim_vyhral_zapas VALUES ('Shallow Desperado', 403, 486, 54);
-INSERT INTO tim_vyhral_zapas VALUES ('Hateful Voltiac', 404, 775, 56);
-INSERT INTO tim_vyhral_zapas VALUES ('Shallow Desperado', 405, 74, 12);
 
 INSERT INTO turnaj_sponzoruje_sponzor VALUES (301, 500);
 INSERT INTO turnaj_sponzoruje_sponzor VALUES (301, 501);
