@@ -26,7 +26,9 @@ CREATE TABLE osoba(
   meno VARCHAR2(50) NOT NULL,
   priezvisko VARCHAR2(50) NOT NULL,
   narodnost VARCHAR(50) NOT NULL,
-  datum_narodenia Date NOT NULL
+  datum_narodenia Date NOT NULL,
+  mail VARCHAR(50) NOT NULL,
+  prihlaseny_na_odber_noviniek NUMBER(1)
 );
 
 CREATE TABLE hra(
@@ -43,7 +45,7 @@ CREATE TABLE klan(
   id_klanu NUMBER NOT NULL PRIMARY KEY,-- max osem ciferne cislo
   nazov VARCHAR2(50),
   hymna VARCHAR2(50),
-  logo_cesta VARCHAR2(255),
+  logo VARCHAR2(255),
   veduci NUMBER NOT NULL,
   CONSTRAINT klan_veduci_FK FOREIGN KEY (veduci) REFERENCES osoba(rodne_cislo),
   CONSTRAINT id_klanu_has_8_digits CHECK (REGEXP_LIKE(id_klanu,'^\d{1,8}$'))
@@ -75,6 +77,7 @@ CREATE TABLE tim(
 CREATE TABLE turnaj(
   id_turnaju NUMBER NOT NULL PRIMARY KEY,-- max osem ciferne cislo
   hlavna_cena VARCHAR2(50),
+  datum_konania Date NOT NULL,
   vyherny_tim VARCHAR2(50),
   CONSTRAINT turnaj_vyherny_tim_FK FOREIGN KEY (vyherny_tim) REFERENCES tim(nazov_timu),
   CONSTRAINT id_turnaju_has_8_digits CHECK (REGEXP_LIKE(id_turnaju,'^\d{1,8}$'))
@@ -163,13 +166,13 @@ CREATE TABLE turnaj_sponzoruje_sponzor(
 -- Insert sample data
 -------------------------------------
 
-INSERT INTO OSOBA VALUES (0156146848, 'Chai', 'Cameron', 'Slovak', TO_DATE('1990-03-01','yyyy-mm-dd'));
-INSERT INTO osoba VALUES (9960285478, 'Canno', 'Boyer', 'Filipino', TO_DATE('1990-03-01','yyyy-mm-dd'));
-INSERT INTO osoba VALUES (9959080054, 'Kayle', 'Wiley', 'German', TO_DATE('1990-03-01','yyyy-mm-dd'));
-INSERT INTO osoba VALUES (9156288251, 'Rya', 'Nash', 'Australian', TO_DATE('1990-03-01','yyyy-mm-dd'));
-INSERT INTO osoba VALUES (9152139172, 'Mia', 'Yang', 'Japanese', TO_DATE('1990-03-01','yyyy-mm-dd'));
-INSERT INTO osoba VALUES (9559101959, 'Jordon', 'Hughes', 'Czech', TO_DATE('1990-03-01','yyyy-mm-dd'));
-INSERT INTO osoba VALUES (0006160319, 'Roland', 'Archer', 'Australian', TO_DATE('1990-03-01','yyyy-mm-dd'));
+INSERT INTO OSOBA VALUES (0156146848, 'Chai', 'Cameron', 'Slovak', TO_DATE('1990-03-01','yyyy-mm-dd'), 'cam@gmail.com', 1);
+INSERT INTO osoba VALUES (9960285478, 'Canno', 'Boyer', 'Filipino', TO_DATE('1990-03-01','yyyy-mm-dd'), 'boy@gmail.com', 1);
+INSERT INTO osoba VALUES (9959080054, 'Kayle', 'Wiley', 'German', TO_DATE('1990-03-01','yyyy-mm-dd'), 'wil@gmail.com', 1);
+INSERT INTO osoba VALUES (9156288251, 'Rya', 'Nash', 'Australian', TO_DATE('1990-03-01','yyyy-mm-dd'), 'nas@gmail.com', 1);
+INSERT INTO osoba VALUES (9152139172, 'Mia', 'Yang', 'Japanese', TO_DATE('1990-03-01','yyyy-mm-dd'), 'yan@gmail.com', 0);
+INSERT INTO osoba VALUES (9559101959, 'Jordon', 'Hughes', 'Czech', TO_DATE('1990-03-01','yyyy-mm-dd'), 'hug@gmail.com', 0);
+INSERT INTO osoba VALUES (0006160319, 'Roland', 'Archer', 'Australian', TO_DATE('1990-03-01','yyyy-mm-dd'), 'arch@gmail.com', 0);
 
 INSERT INTO hra VALUES (000, 'Tekken', 'Figting', TO_DATE('1990-03-01','yyyy-mm-dd'), '1v1', 'Capcom');
 INSERT INTO hra VALUES (001, 'Quake', 'First-person shooters', TO_DATE('1997-05-11','yyyy-mm-dd'), '5v5', 'Capcom');
@@ -201,9 +204,9 @@ INSERT INTO tim VALUES ('Separate Assassins');
 INSERT INTO tim VALUES ('Four Gangsters');
 INSERT INTO tim VALUES ('Hateful Voltiac');
 
-INSERT INTO turnaj VALUES (301, '5000€', 'Shallow Desperado');
-INSERT INTO turnaj VALUES (302, '100€', 'Hateful Voltiac');
-INSERT INTO turnaj VALUES (303, '2000€', 'Shallow Desperado');
+INSERT INTO turnaj VALUES (301, '5000€', TO_DATE('2019-05-01','yyyy-mm-dd'), 'Shallow Desperado');
+INSERT INTO turnaj VALUES (302, '100€', TO_DATE('2019-06-11','yyyy-mm-dd'),'Hateful Voltiac');
+INSERT INTO turnaj VALUES (303, '2000€', TO_DATE('2019-06-25','yyyy-mm-dd'),'Shallow Desperado');
 
 INSERT INTO zapas VALUES (401, 45265, 'scrim', NULL, 'Four Gangsters', 647, 123);
 INSERT INTO zapas VALUES (402, 45645, 'tournament', 301, 'Shallow Desperado', 988, 456);
