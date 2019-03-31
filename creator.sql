@@ -1,14 +1,3 @@
-
--- TODO:
-
--- Can player plays on its own? Like not belongs to any clan? -> Maybe adjust cardinality
--- Can clan exists on its own, without any player?
--- Maybe add atribute information about tournament
--- Isnt date of birth redunant because of number of birth
--- Why there is nationality in player?
--- Logo attribute is like ascii art? Or url to real image?
-
-
 DROP TABLE osoba CASCADE CONSTRAINTS;
 DROP TABLE hra CASCADE CONSTRAINTS;
 DROP TABLE klan CASCADE CONSTRAINTS;
@@ -53,9 +42,8 @@ CREATE TABLE hra(
 CREATE TABLE klan(
   id_klanu NUMBER NOT NULL PRIMARY KEY,-- max osem ciferne cislo
   nazov VARCHAR2(50),
-  narodnost VARCHAR2(50),
   hymna VARCHAR2(50),
-  logo VARCHAR2(50),
+  logo_cesta VARCHAR2(255),
   veduci NUMBER NOT NULL,
   CONSTRAINT klan_veduci_FK FOREIGN KEY (veduci) REFERENCES osoba(rodne_cislo),
   CONSTRAINT id_klanu_has_8_digits CHECK (REGEXP_LIKE(id_klanu,'^\d{1,8}$'))
@@ -64,7 +52,7 @@ CREATE TABLE klan(
 CREATE TABLE hrac(
   rodne_cislo NUMBER NOT NULL PRIMARY KEY,
   prezyvka VARCHAR2(50) NOT NULL,
-  klan Number,
+  klan NUMBER,
   CONSTRAINT hrac_rodne_cislo_FK FOREIGN KEY (rodne_cislo) REFERENCES osoba(rodne_cislo),
   CONSTRAINT hrac_klan_FK FOREIGN KEY (klan) REFERENCES klan(id_klanu)
 );
@@ -188,10 +176,10 @@ INSERT INTO hra VALUES (001, 'Quake', 'First-person shooters', TO_DATE('1997-05-
 INSERT INTO hra VALUES (002, 'Doom', 'First-person shooters', TO_DATE('2015-12-24','yyyy-mm-dd'), '2v2', 'Capcom');
 INSERT INTO hra VALUES (003, 'Call of duty', 'First-person shooters', TO_DATE('1994-03-31','yyyy-mm-dd'), '1v1', 'Capcom');
 
-INSERT INTO klan VALUES (100, 'Gray Rebels', 'Hunagrian', 'anthem1', 'logo1', 0156146848);
-INSERT INTO klan VALUES (101, 'Comfortable Liquidators', 'Swedish', 'anthem2', 'logo2', 9960285478);
-INSERT INTO klan VALUES (102, 'Imported Knights', 'Chinese', 'anthem3','logo3', 9959080054);
-INSERT INTO klan VALUES (103, 'Creepy Exile', 'Anthemn', 'anthem4', 'logo4', 0006160319);
+INSERT INTO klan VALUES (100, 'Gray Rebels', 'anthem1...', '~/images/logo1.jpg', 0156146848);
+INSERT INTO klan VALUES (101, 'Comfortable Liquidators', 'anthem2...', '~/images/logo2.jpg', 9960285478);
+INSERT INTO klan VALUES (102, 'Imported Knights', 'anthem3...','~/images/logo3.jpg', 9959080054);
+INSERT INTO klan VALUES (103, 'Creepy Exile', 'anthem4...', '~/images/logo4.jpg', 0006160319);
 
 INSERT INTO hrac VALUES (0156146848, 'Cam', 100);
 INSERT INTO hrac VALUES (9960285478, 'Boy', 100);
