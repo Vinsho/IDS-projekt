@@ -15,10 +15,11 @@ DROP TABLE hra_sa_hraje_na_turnaji CASCADE CONSTRAINTS;
 DROP TABLE tim_sa_zucastni_turnaja CASCADE CONSTRAINTS;
 DROP TABLE tim_sa_zucastni_zapasu CASCADE CONSTRAINTS;
 DROP TABLE turnaj_sponzoruje_sponzor CASCADE CONSTRAINTS;
+DROP TABLE zapas_sa_hraje_na_turnaji CASCADE CONSTRAINTS;
 
 
 -------------------------------------
--- Tables
+-- Tabulky
 -------------------------------------
 
 CREATE TABLE osoba(
@@ -87,11 +88,9 @@ CREATE TABLE zapas(
   id_zapasu NUMBER NOT NULL PRIMARY KEY,-- max osem ciferne cislo
   trvanie_hry NUMBER NOT NULL, -- in seconds
   druh_zapasu VARCHAR2(50),
-  v_ramci_turnaju NUMBER,
   vyherny_tim VARCHAR2(50),
   skore_vyhercu NUMBER NOT NULL,
   skore_prehraneho NUMBER NOT NULL,
-  CONSTRAINT zapas_v_ramci_turnaju_FK FOREIGN KEY (v_ramci_turnaju) REFERENCES turnaj(id_turnaju),
   CONSTRAINT zapas_vyherny_tim_FK FOREIGN KEY (vyherny_tim) REFERENCES tim(nazov_timu),
   CONSTRAINT id_zapasu_has_8_digits CHECK (REGEXP_LIKE(id_zapasu,'^\d{1,8}$'))
 );
@@ -103,7 +102,7 @@ CREATE TABLE sponzor(
 );
 
 -------------------------------------
--- Many to many relation tables
+-- * to * vztahy
 -------------------------------------
 
 CREATE TABLE hrac_hraje_za_tim(
@@ -162,8 +161,16 @@ CREATE TABLE turnaj_sponzoruje_sponzor(
   CONSTRAINT turnaj_sponzoruje_sponzor_id_sponzora_FK FOREIGN KEY (id_sponzora) REFERENCES sponzor(id_sponzora)
 );
 
+CREATE TABLE zapas_sa_hraje_na_turnaji(
+    id_turnaju NUMBER NOT NULL,
+    id_zapasu Number NOT NULL,
+    CONSTRAINT zapas_sa_hraje_na_turnaji_PK PRIMARY KEY (id_turnaju, id_zapasu),
+    CONSTRAINT zapas_sa_hraje_na_turnaji_id_zapasu_FK FOREIGN KEY (id_zapasu) REFERENCES zapas(id_zapasu),
+    CONSTRAINT zapas_sa_hraje_na_turnaji_id_turnaju_FK FOREIGN KEY (id_turnaju) REFERENCES turnaj(id_turnaju)
+
+);
 -------------------------------------
--- Insert sample data
+-- Vlozenie testovacich udajov
 -------------------------------------
 
 INSERT INTO OSOBA VALUES (0156146848, 'Chai', 'Cameron', 'Slovak', TO_DATE('1990-03-01','yyyy-mm-dd'), 'cam@gmail.com', 1);
@@ -174,7 +181,7 @@ INSERT INTO osoba VALUES (9152139172, 'Mia', 'Yang', 'Japanese', TO_DATE('1990-0
 INSERT INTO osoba VALUES (9559101959, 'Jordon', 'Hughes', 'Czech', TO_DATE('1990-03-01','yyyy-mm-dd'), 'hug@gmail.com', 0);
 INSERT INTO osoba VALUES (0006160319, 'Roland', 'Archer', 'Australian', TO_DATE('1990-03-01','yyyy-mm-dd'), 'arch@gmail.com', 0);
 
-INSERT INTO hra VALUES (000, 'Tekken', 'Figting', TO_DATE('1990-03-01','yyyy-mm-dd'), '1v1', 'Capcom');
+INSERT INTO hra VALUES (000, 'Tekken', 'Fighting', TO_DATE('1990-03-01','yyyy-mm-dd'), '1v1', 'Capcom');
 INSERT INTO hra VALUES (001, 'Quake', 'First-person shooters', TO_DATE('1997-05-11','yyyy-mm-dd'), '5v5', 'Capcom');
 INSERT INTO hra VALUES (002, 'Doom', 'First-person shooters', TO_DATE('2015-12-24','yyyy-mm-dd'), '2v2', 'Capcom');
 INSERT INTO hra VALUES (003, 'Call of duty', 'First-person shooters', TO_DATE('1994-03-31','yyyy-mm-dd'), '1v1', 'Capcom');
@@ -208,11 +215,11 @@ INSERT INTO turnaj VALUES (301, '5000€', TO_DATE('2019-05-01','yyyy-mm-dd'), '
 INSERT INTO turnaj VALUES (302, '100€', TO_DATE('2019-06-11','yyyy-mm-dd'),'Hateful Voltiac');
 INSERT INTO turnaj VALUES (303, '2000€', TO_DATE('2019-06-25','yyyy-mm-dd'),'Shallow Desperado');
 
-INSERT INTO zapas VALUES (401, 45265, 'scrim', NULL, 'Four Gangsters', 647, 123);
-INSERT INTO zapas VALUES (402, 45645, 'tournament', 301, 'Shallow Desperado', 988, 456);
-INSERT INTO zapas VALUES (403, 78789, 'tournament', 301, 'Shallow Desperado', 486, 54);
-INSERT INTO zapas VALUES (404, 123456, 'tournament', 302, 'Hateful Voltiac', 775, 56);
-INSERT INTO zapas VALUES (405, 685122, 'tournament', 303, 'Shallow Desperado', 74, 12);
+INSERT INTO zapas VALUES (401, 45265, 'scrim', 'Four Gangsters', 647, 123);
+INSERT INTO zapas VALUES (402, 45645, 'tournament', 'Shallow Desperado', 988, 456);
+INSERT INTO zapas VALUES (403, 78789, 'tournament',  'Shallow Desperado', 486, 54);
+INSERT INTO zapas VALUES (404, 123456, 'tournament',  'Hateful Voltiac', 775, 56);
+INSERT INTO zapas VALUES (405, 685122, 'tournament',  'Shallow Desperado', 74, 12);
 
 INSERT INTO sponzor VALUES (500, 'Coca cola', 'main');
 INSERT INTO sponzor VALUES (501, 'JBL', 'main');
@@ -272,3 +279,77 @@ INSERT INTO turnaj_sponzoruje_sponzor VALUES (301, 500);
 INSERT INTO turnaj_sponzoruje_sponzor VALUES (301, 501);
 INSERT INTO turnaj_sponzoruje_sponzor VALUES (301, 502);
 INSERT INTO turnaj_sponzoruje_sponzor VALUES (302, 500);
+
+INSERT INTO zapas_sa_hraje_na_turnaji VALUES (301,402);
+INSERT INTO zapas_sa_hraje_na_turnaji VALUES (301,403);
+INSERT INTO zapas_sa_hraje_na_turnaji VALUES (302,404);
+INSERT INTO zapas_sa_hraje_na_turnaji VALUES (303,405);
+
+
+------------------------------------------------------------------------------
+--Select dotazy
+------------------------------------------------------------------------------
+--Spojenie 2 tabuliek 2x
+------------------------------------------------------------------------------
+--Vypis Nazvu,Zanru hry na ktoru sa zameriava hrac s rodnym cislom 9960285478
+
+SELECT nazov, zaner
+FROM hra H NATURAL JOIN hrac_sa_zameriava_na_hru
+WHERE hrac_sa_zameriava_na_hru.hrac = 9960285478;
+
+--Vypis zapasov, ktorych sa zucastni tim Shallow Desperado
+
+SELECT id_zapasu,trvanie_hry,druh_zapasu
+FROM zapas Z NATURAL JOIN tim_sa_zucastni_zapasu
+WHERE tim_sa_zucastni_zapasu.nazov_timu='Shallow Desperado';
+
+------------------------------------------------------------------------------
+--Spojenie 3 tabuliek
+------------------------------------------------------------------------------
+--Vypis hlavnej ceny, nazvu hry a vitazneho timu turnaja
+
+SELECT hlavna_cena, nazov, nazov_timu
+from tim_sa_zucastni_turnaja t NATURAL JOIN turnaj tu NATURAL JOIN hra h NATURAL JOIN hra_sa_hraje_na_turnaji
+WHERE id_turnaju = 301 and vyherny_tim=nazov_timu;
+
+------------------------------------------------------------------------------
+--Dotazy s klauzulou GROUP BY a agregacnou funkciou 2x
+------------------------------------------------------------------------------
+--Vypis nazvu timu a pocet hracov za tim
+
+SELECT nazov_timu, count(h_t.hrac)
+FROM hrac_hraje_za_tim h_t NATURAL JOIN tim
+GROUP BY nazov_timu;
+
+--Vypis ID turnaju a dlzka najdlhsieho zapasu
+
+SELECT id_turnaju, max(z.trvanie_hry)
+FROM turnaj NATURAL JOIN zapas z NATURAL JOIN zapas_sa_hraje_na_turnaji
+GROUP BY id_turnaju;
+
+------------------------------------------------------------------------------
+--Select s exists
+------------------------------------------------------------------------------
+--Vypise informacie o klanoch ktore sa nezameriavaju na hru s id 000
+
+SELECT *
+FROM klan
+WHERE NOT EXISTS(
+    SELECT *
+    FROM klan_sa_zameriava_na_hru
+    WHERE klan_sa_zameriava_na_hru.id_klanu = klan.id_klanu and klan_sa_zameriava_na_hru.id_hry = 000
+    );
+
+------------------------------------------------------------------------------
+--Select s vnorenym in
+------------------------------------------------------------------------------
+--Vypise informacie o hracovi ktory ma mysku A4Tech Bloody V7M
+
+SELECT *
+FROM osoba NATURAL JOIN hrac
+WHERE rodne_cislo IN
+      (
+          SELECT rodne_cislo
+          FROM vybavenie
+          WHERE mys = 'A4Tech Bloody V7M' and rodne_cislo=vlastnik
+          );
