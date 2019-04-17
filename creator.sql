@@ -79,8 +79,8 @@ CREATE TABLE turnaj(
   id_turnaju NUMBER NOT NULL PRIMARY KEY,-- max osem ciferne cislo
   hlavna_cena VARCHAR2(50),
   datum_konania Date NOT NULL,
-  vyherny_tim VARCHAR2(50),
-  CONSTRAINT turnaj_vyherny_tim_FK FOREIGN KEY (vyherny_tim) REFERENCES tim(nazov_timu),
+  vyherny_tim_turnaju VARCHAR2(50),
+  CONSTRAINT turnaj_vyherny_tim_FK FOREIGN KEY (vyherny_tim_turnaju) REFERENCES tim(nazov_timu),
   CONSTRAINT id_turnaju_has_8_digits CHECK (REGEXP_LIKE(id_turnaju,'^\d{1,8}$'))
 );
 
@@ -173,13 +173,13 @@ CREATE TABLE zapas_sa_hraje_na_turnaji(
 -- Vlozenie testovacich udajov
 -------------------------------------
 
-INSERT INTO OSOBA VALUES (0156146848, 'Chai', 'Cameron', 'Slovak', TO_DATE('1990-03-01','yyyy-mm-dd'), 'cam@gmail.com', 1);
-INSERT INTO osoba VALUES (9960285478, 'Canno', 'Boyer', 'Filipino', TO_DATE('1990-03-01','yyyy-mm-dd'), 'boy@gmail.com', 1);
-INSERT INTO osoba VALUES (9959080054, 'Kayle', 'Wiley', 'German', TO_DATE('1990-03-01','yyyy-mm-dd'), 'wil@gmail.com', 1);
-INSERT INTO osoba VALUES (9156288251, 'Rya', 'Nash', 'Australian', TO_DATE('1990-03-01','yyyy-mm-dd'), 'nas@gmail.com', 1);
-INSERT INTO osoba VALUES (9152139172, 'Mia', 'Yang', 'Japanese', TO_DATE('1990-03-01','yyyy-mm-dd'), 'yan@gmail.com', 0);
-INSERT INTO osoba VALUES (9559101959, 'Jordon', 'Hughes', 'Czech', TO_DATE('1990-03-01','yyyy-mm-dd'), 'hug@gmail.com', 0);
-INSERT INTO osoba VALUES (0006160319, 'Roland', 'Archer', 'Australian', TO_DATE('1990-03-01','yyyy-mm-dd'), 'arch@gmail.com', 0);
+INSERT INTO OSOBA VALUES (0156146848, 'Chai', 'Cameron', 'Slovak', TO_DATE('1985-10-01','yyyy-mm-dd'), 'cam@gmail.com', 1);
+INSERT INTO osoba VALUES (9960285478, 'Canno', 'Boyer', 'Filipino', TO_DATE('1995-03-20','yyyy-mm-dd'), 'boy@gmail.com', 1);
+INSERT INTO osoba VALUES (9959080054, 'Kayle', 'Wiley', 'German', TO_DATE('1997-06-25','yyyy-mm-dd'), 'wil@gmail.com', 1);
+INSERT INTO osoba VALUES (9156288251, 'Rya', 'Nash', 'Australian', TO_DATE('1994-04-14','yyyy-mm-dd'), 'nas@gmail.com', 1);
+INSERT INTO osoba VALUES (9152139172, 'Mia', 'Yang', 'Japanese', TO_DATE('1992-07-07','yyyy-mm-dd'), 'yan@gmail.com', 0);
+INSERT INTO osoba VALUES (9559101959, 'Jordon', 'Hughes', 'Czech', TO_DATE('1991-01-03','yyyy-mm-dd'), 'hug@gmail.com', 0);
+INSERT INTO osoba VALUES (0006160319, 'Roland', 'Archer', 'Australian', TO_DATE('1990-08-30','yyyy-mm-dd'), 'arch@gmail.com', 0);
 
 INSERT INTO hra VALUES (000, 'Tekken', 'Fighting', TO_DATE('1990-03-01','yyyy-mm-dd'), '1v1', 'Capcom');
 INSERT INTO hra VALUES (001, 'Quake', 'First-person shooters', TO_DATE('1997-05-11','yyyy-mm-dd'), '5v5', 'Capcom');
@@ -227,7 +227,7 @@ INSERT INTO sponzor VALUES (502, 'Nvidia', 'main');
 
 INSERT INTO hrac_hraje_za_tim VALUES (0156146848, 'Shallow Desperado');
 INSERT INTO hrac_hraje_za_tim VALUES (0156146848, 'Separate Assassins');
-INSERT INTO hrac_hraje_za_tim VALUES (0156146848, 'Four Gangsters');
+INSERT INTO hrac_hraje_za_tim VALUES (9559101959, 'Four Gangsters');
 INSERT INTO hrac_hraje_za_tim VALUES (9960285478, 'Shallow Desperado');
 INSERT INTO hrac_hraje_za_tim VALUES (9959080054, 'Shallow Desperado');
 INSERT INTO hrac_hraje_za_tim VALUES (9156288251, 'Separate Assassins');
@@ -310,7 +310,7 @@ WHERE tim_sa_zucastni_zapasu.nazov_timu='Shallow Desperado';
 
 SELECT hlavna_cena, nazov, nazov_timu
 from tim_sa_zucastni_turnaja t NATURAL JOIN turnaj tu NATURAL JOIN hra h NATURAL JOIN hra_sa_hraje_na_turnaji
-WHERE id_turnaju = 301 and vyherny_tim=nazov_timu;
+WHERE id_turnaju = 301 and vyherny_tim_turnaju=nazov_timu;
 
 ------------------------------------------------------------------------------
 --Dotazy s klauzulou GROUP BY a agregacnou funkciou 2x
@@ -353,3 +353,163 @@ WHERE rodne_cislo IN
           FROM vybavenie
           WHERE mys = 'A4Tech Bloody V7M' and rodne_cislo=vlastnik
           );
+
+
+------------------------------------------------------------------------------
+--Pokrocile schemata databazy
+------------------------------------------------------------------------------
+--Vytvorenie triggeru 2x
+------------------------------------------------------------------------------
+
+
+
+
+
+
+
+------------------------------------------------------------------------------
+--Vytvorenie procedury 2x
+------------------------------------------------------------------------------
+
+--Procedura zobrazi kolko zapasov hladany tim na turnaji odohral a kolko vyhral
+-- ------------------------------------------------------------------------------
+SET serveroutput ON;
+CREATE OR REPLACE PROCEDURE uspesnost_timu_na_turnaji(nazov_timu_arg VARCHAR2, id_turnaju_arg NUMBER)
+AS
+    CURSOR obsah is
+    SELECT nazov_timu, id_turnaju, vyherny_tim
+    FROM zapas_sa_hraje_na_turnaji NATURAL JOIN turnaj NATURAL JOIN zapas NATURAL JOIN tim_sa_zucastni_zapasu;
+    riadok obsah%ROWTYPE;
+    zapasy NUMBER;
+    vyhrane NUMBER;
+BEGIN
+    zapasy := 0;
+    vyhrane := 0;
+    open obsah;
+    loop
+        fetch obsah into riadok;
+        exit when obsah%NOTFOUND;
+        IF (riadok.nazov_timu = nazov_timu_arg) THEN
+            IF(riadok.id_turnaju = id_turnaju_arg)THEN
+                IF(riadok.vyherny_tim = nazov_timu_arg)THEN
+                    vyhrane := vyhrane + 1;
+                end if;
+                zapasy := zapasy +1;
+            end if;
+
+        end if;
+    end loop;
+
+IF(zapasy = 0) THEN
+        DBMS_OUTPUT.put_line('Tim ' || nazov_timu_arg || ' nehral na hladanom turnaji ziadne zapasy');
+    ELSE
+        DBMS_OUTPUT.put_line('Tim ' || nazov_timu_arg || ' vyhral na hladanom turnaji ' ||vyhrane || ' z ' ||zapasy||' zapasov');
+    end if;
+    close obsah;
+end;
+/
+
+------------------------------------------------------------------------------
+--Vypise kolko percent hracov danej hry su danej narodnosti
+------------------------------------------------------------------------------
+CREATE OR REPLACE PROCEDURE percentualna_narodnost_hracov_hry(narodnost_arg VARCHAR2, id_hry_arg NUMBER)
+AS
+    CURSOR obsah is
+    SELECT nazov,hra.id_hry, narodnost
+    FROM hrac NATURAL JOIN osoba, hra, hrac_sa_zameriava_na_hru
+    WHERE hrac = rodne_cislo AND hra.id_hry = hrac_sa_zameriava_na_hru.id_hry ;
+    riadok obsah%ROWTYPE;
+    hraci NUMBER;
+    hraci_danej_narodnosti NUMBER;
+    nazov_hry hra.nazov%TYPE;
+BEGIN
+    hraci := 0;
+    hraci_danej_narodnosti := 0;
+    SELECT nazov INTO nazov_hry FROM hra WHERE id_hry = id_hry_arg;
+
+    open obsah;
+    loop
+        fetch obsah into riadok;
+        exit when obsah%NOTFOUND;
+        IF (riadok.id_hry = id_hry_arg)THEN
+            IF(riadok.narodnost = narodnost_arg)THEN
+                hraci_danej_narodnosti := hraci_danej_narodnosti + 1;
+            end if;
+            hraci := hraci +1 ;
+        end if;
+    end loop;
+
+    DBMS_OUTPUT.put_line( (hraci_danej_narodnosti * 100)/hraci ||'% hracov hry ' || nazov_hry || ' su narodnosti: ' || narodnost_arg);
+    EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.put_line( 'Hra neexistuje v databaze');
+    WHEN ZERO_DIVIDE THEN
+        DBMS_OUTPUT.put_line('Hra ' || nazov_hry || ' nema ziadnych hracov');
+    close obsah;
+end;
+
+
+------------------------------------------------------------------------------
+--Zavolanie procedur
+------------------------------------------------------------------------------
+SET SERVEROUTPUT ON
+BEGIN
+uspesnost_timu_na_turnaji('Separate Assassins',305);
+percentualna_narodnost_hracov_hry('Slovak',004);
+END;
+
+------------------------------------------------------------------------------
+--Explain plan a index
+------------------------------------------------------------------------------
+--Zobrazi nazov timu, pocet clenov a datum narodenia najstarsieho clena
+EXPLAIN PLAN FOR
+SELECT nazov_timu, count(h_t.hrac), min(osoba.datum_narodenia)
+FROM hrac_hraje_za_tim h_t NATURAL JOIN tim NATURAL JOIN osoba
+WHERE hrac = rodne_cislo
+GROUP BY nazov_timu;
+
+SELECT PLAN_TABLE_OUTPUT FROM TABLE(dbms_xplan.display());
+
+CREATE INDEX tim_index ON tim (nazov_timu);
+--CREATE INDEX osoba_index on osoba (datum_narodenia,rodne_cislo);
+
+
+EXPLAIN PLAN FOR
+SELECT nazov_timu, count(h_t.hrac), min(osoba.datum_narodenia)
+FROM hrac_hraje_za_tim h_t NATURAL JOIN tim NATURAL JOIN osoba
+WHERE hrac = rodne_cislo
+GROUP BY nazov_timu;
+
+SELECT PLAN_TABLE_OUTPUT FROM TABLE(dbms_xplan.display());
+
+DROP INDEX tim_index;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
