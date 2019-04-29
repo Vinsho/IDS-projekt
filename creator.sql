@@ -17,6 +17,12 @@ DROP TABLE tim_sa_zucastni_zapasu CASCADE CONSTRAINTS;
 DROP TABLE turnaj_sponzoruje_sponzor CASCADE CONSTRAINTS;
 DROP TABLE zapas_sa_hraje_na_turnaji CASCADE CONSTRAINTS;
 
+DROP SEQUENCE id_sum;
+
+DROP MATERIALIZED VIEW vybavenie_hracov;
+DROP MATERIALIZED VIEW LOG ON HRAC;
+DROP MATERIALIZED VIEW LOG ON vybavenie;
+
 
 -------------------------------------
 -- Tabulky
@@ -169,6 +175,84 @@ CREATE TABLE zapas_sa_hraje_na_turnaji(
     CONSTRAINT zapas_sa_hraje_na_turnaji_id_turnaju_FK FOREIGN KEY (id_turnaju) REFERENCES turnaj(id_turnaju)
 
 );
+------------------------------------------------------------------------------
+--Vytvorenie triggeru 2x
+------------------------------------------------------------------------------
+--Trigger sluziaci na inkrementaciu id_hry
+------------------------------------------------------------------------------
+--- Trigger na kontrolu rodneho cisla u klientov
+CREATE OR REPLACE TRIGGER kontrola_rodneho_cisla
+	BEFORE INSERT OR UPDATE OF rodne_cislo ON osoba
+  FOR EACH ROW
+DECLARE
+  r_c osoba.rodne_cislo%TYPE;
+  rok VARCHAR2(2);
+  mesiac VARCHAR2(2);
+  den VARCHAR2(2);
+
+
+BEGIN
+   r_c := :NEW.rodne_cislo;
+   rok := SUBSTR(r_c, 1, 2);
+   mesiac := SUBSTR(r_c, 3, 2);
+   den := SUBSTR(r_c, 5, 2);
+
+   if (LENGTH(r_c) != 9 AND LENGTH(r_c) != 10)
+      THEN raise_application_error(-20201, 'Nespravny pocet cislic v rodnom cisle');
+   END IF;
+   if (LENGTH(r_c) = 9 AND SUBSTR(r_c, 7, 3) = '000')
+      THEN raise_application_error(-20202, 'Nespravna koncovka v 9 . miestnom rodnom cisle');
+   END IF;
+   if (MOD(r_c, 11) != 0)
+       THEN raise_application_error(-20202, 'Rodne cislo nie je delitelne 11');
+   END IF;
+   if (rok < 0 OR rok > 99)
+       THEN raise_application_error(-20203, 'Neplatny rok v rodnom cisle');
+   END IF;
+
+   if (mesiac > 50)
+       THEN
+          mesiac := mesiac - 50;
+   ELSE
+       if (mesiac > 20)
+       THEN
+          mesiac := mesiac - 20;
+       END IF;
+   END IF;
+   if (mesiac <= 0 OR mesiac > 12)
+       THEN raise_application_error(-20204, 'Neplatny mesiac v rodnom cisle');
+   END IF;
+   if (den <= 0)
+       THEN raise_application_error(-20205, 'Neplatny den v rodnom cisle');
+   END IF;
+   if (den > 40)
+       THEN
+          den := den - 40;
+   END IF;
+   if (den > 28 AND mesiac = 2 AND MOD(rok, 4) != 0 )
+      THEN raise_application_error(-20206, 'Neplatny datum  v rodnom cisle');
+   END IF;
+   if (den > 29 AND mesiac = 2 AND MOD(rok, 4) = 0 )
+      THEN raise_application_error(-20206, 'Neplatny datum  v rodnom cisle');
+   END IF;
+   if (den > 30 AND (mesiac = 4 OR mesiac = 6 OR mesiac = 9 OR mesiac = 11))
+       THEN raise_application_error(-20206, 'Neplatny datum v rodnom cisle');
+   END IF;
+   if (den > 31 AND (mesiac = 1 OR mesiac = 3 OR mesiac = 5 OR mesiac = 7 OR mesiac = 8 OR mesiac = 10 OR mesiac = 12))
+       THEN raise_application_error(-20206, 'Neplatny datum  v rodnom cisle');
+   END IF;
+
+END;
+/
+
+CREATE SEQUENCE id_sum ;
+CREATE OR REPLACE TRIGGER inkrementacia
+  BEFORE INSERT ON vybavenie
+  FOR EACH ROW
+BEGIN
+  :new.id_vybavenia := id_sum.nextval;
+END inkrementacia;
+/
 -------------------------------------
 -- Vlozenie testovacich udajov
 -------------------------------------
@@ -179,17 +263,17 @@ INSERT INTO osoba VALUES (9959080054, 'Kayle', 'Wiley', 'German', TO_DATE('1997-
 INSERT INTO osoba VALUES (9156288251, 'Rya', 'Nash', 'Australian', TO_DATE('1994-04-14','yyyy-mm-dd'), 'nas@gmail.com', 1);
 INSERT INTO osoba VALUES (9152139172, 'Mia', 'Yang', 'Japanese', TO_DATE('1992-07-07','yyyy-mm-dd'), 'yan@gmail.com', 0);
 INSERT INTO osoba VALUES (9559101959, 'Jordon', 'Hughes', 'Czech', TO_DATE('1991-01-03','yyyy-mm-dd'), 'hug@gmail.com', 0);
-INSERT INTO osoba VALUES (0006160319, 'Roland', 'Archer', 'Australian', TO_DATE('1990-08-30','yyyy-mm-dd'), 'arch@gmail.com', 0);
+INSERT INTO osoba VALUES (0106160318, 'Roland', 'Archer', 'Australian', TO_DATE('1990-08-30','yyyy-mm-dd'), 'arch@gmail.com', 0);
 
-INSERT INTO hra VALUES (000, 'Tekken', 'Fighting', TO_DATE('1990-03-01','yyyy-mm-dd'), '1v1', 'Capcom');
-INSERT INTO hra VALUES (001, 'Quake', 'First-person shooters', TO_DATE('1997-05-11','yyyy-mm-dd'), '5v5', 'Capcom');
-INSERT INTO hra VALUES (002, 'Doom', 'First-person shooters', TO_DATE('2015-12-24','yyyy-mm-dd'), '2v2', 'Capcom');
-INSERT INTO hra VALUES (003, 'Call of duty', 'First-person shooters', TO_DATE('1994-03-31','yyyy-mm-dd'), '1v1', 'Capcom');
+INSERT INTO hra VALUES (0, 'Tekken', 'Fighting', TO_DATE('1990-03-01','yyyy-mm-dd'), '1v1', 'Capcom');
+INSERT INTO hra VALUES (1, 'Quake', 'First-person shooters', TO_DATE('1997-05-11','yyyy-mm-dd'), '5v5', 'Capcom');
+INSERT INTO hra VALUES (2, 'Doom', 'First-person shooters', TO_DATE('2015-12-24','yyyy-mm-dd'), '2v2', 'Capcom');
+INSERT INTO hra VALUES (3, 'Call of duty', 'First-person shooters', TO_DATE('1994-03-31','yyyy-mm-dd'), '1v1', 'Capcom');
 
 INSERT INTO klan VALUES (100, 'Gray Rebels', 'anthem1...', '~/images/logo1.jpg', 0156146848);
 INSERT INTO klan VALUES (101, 'Comfortable Liquidators', 'anthem2...', '~/images/logo2.jpg', 9960285478);
 INSERT INTO klan VALUES (102, 'Imported Knights', 'anthem3...','~/images/logo3.jpg', 9959080054);
-INSERT INTO klan VALUES (103, 'Creepy Exile', 'anthem4...', '~/images/logo4.jpg', 0006160319);
+INSERT INTO klan VALUES (103, 'Creepy Exile', 'anthem4...', '~/images/logo4.jpg', 0106160318);
 
 INSERT INTO hrac VALUES (0156146848, 'Cam', 100);
 INSERT INTO hrac VALUES (9960285478, 'Boy', 100);
@@ -198,13 +282,13 @@ INSERT INTO hrac VALUES (9156288251, 'Nas', 101);
 INSERT INTO hrac VALUES (9152139172, 'Yan', 101);
 INSERT INTO hrac VALUES (9559101959, 'Hug', 102);
 
-INSERT INTO vybavenie VALUES (200, 'A4Tech Bloody V7M', 'Dell KB-216','MSI Radeon RX 580','Yenkee YHP 3010 Hornet',0156146848);
-INSERT INTO vybavenie VALUES (201, 'Logitech M185 ', 'Logitech K400','MSI Radeon RX 570','Sony 5A',0156146848);
-INSERT INTO vybavenie VALUES (202, 'Lenovo N46', 'Razer Ornata Chroma','MSI Radeon RX 560','JBL 7',0156146848);
-INSERT INTO vybavenie VALUES (203, 'Lenovo N55', 'Dell KB-216','MSI Radeon RX 550 ARMOR 8G','Senheiser MAX',9960285478);
-INSERT INTO vybavenie VALUES (204, 'Lenovo N45', 'Dell KB522','NVIDIA GeForce 550m ','JBL T110',9959080054);
-INSERT INTO vybavenie VALUES (205, 'Lenovo N12', 'A4tech Bloody B120','NVIDIA GeForce 1080','Sony 879 ',9156288251);
-INSERT INTO vybavenie VALUES (206, 'Genius NX-7005', 'Genius KM-210','NVIDIA GeForce 970','Ear pods',9152139172);
+INSERT INTO vybavenie VALUES (1, 'A4Tech Bloody V7M', 'Dell KB-216','MSI Radeon RX 580','Yenkee YHP 3010 Hornet',0156146848);
+INSERT INTO vybavenie VALUES (2, 'Logitech M185 ', 'Logitech K400','MSI Radeon RX 570','Sony 5A',0156146848);
+INSERT INTO vybavenie VALUES (3, 'Lenovo N46', 'Razer Ornata Chroma','MSI Radeon RX 560','JBL 7',0156146848);
+INSERT INTO vybavenie VALUES (4, 'Lenovo N55', 'Dell KB-216','MSI Radeon RX 550 ARMOR 8G','Senheiser MAX',9960285478);
+INSERT INTO vybavenie VALUES (5, 'Lenovo N45', 'Dell KB522','NVIDIA GeForce 550m ','JBL T110',9959080054);
+INSERT INTO vybavenie VALUES (6, 'Lenovo N12', 'A4tech Bloody B120','NVIDIA GeForce 1080','Sony 879 ',9156288251);
+INSERT INTO vybavenie VALUES (7, 'Genius NX-7005', 'Genius KM-210','NVIDIA GeForce 970','Ear pods',9152139172);
 
 INSERT INTO tim VALUES ('Shallow Desperado');
 INSERT INTO tim VALUES ('Separate Assassins');
@@ -358,13 +442,27 @@ WHERE rodne_cislo IN
 ------------------------------------------------------------------------------
 --Pokrocile schemata databazy
 ------------------------------------------------------------------------------
---Vytvorenie triggeru 2x
+--Test triggerov
+------------------------------------------------------------------------------
+--Test triggeru pre rodne cislo
+------------------------------------------------------------------------------
+--Nespravny, nie je delitelny 11
+
+INSERT INTO osoba VALUES (9712043549,'Peter','Novak','Slovak',TO_DATE('1997-12-04','yyyy-mm-dd'), 'novak@gmail.com', 1);
+
+--Spravny
+
+INSERT INTO osoba VALUES (9712043539,'Peter','Novak','Slovak',TO_DATE('1997-12-04','yyyy-mm-dd'), 'novak@gmail.com', 1);
+
+------------------------------------------------------------------------------
+--Test triggeru pre autoinkrementaciu
+-- I napriek tomu, ze sa snazime vlozit do id_vybavenia hodnotu 201, tak vysledna ulozena hodnota bude dalsia v postupnosti auto inkrementacie
 ------------------------------------------------------------------------------
 
+INSERT INTO hrac VALUES (9712043539, 'Peto', 102);
+INSERT INTO vybavenie VALUES(201,'Razer DeathAdder Elite', 'Razer Ornata Chroma', 'NVIDIA GeForce 1080', 'Razer Nari Essential', 9712043539);
 
-
-
-
+SELECT id_vybavenia from vybavenie;
 
 
 ------------------------------------------------------------------------------
@@ -447,12 +545,12 @@ BEGIN
         DBMS_OUTPUT.put_line('Hra ' || nazov_hry || ' nema ziadnych hracov');
     close obsah;
 end;
-
+/
 
 ------------------------------------------------------------------------------
 --Zavolanie procedur
 ------------------------------------------------------------------------------
-SET SERVEROUTPUT ON
+SET serveroutput ON;
 BEGIN
 uspesnost_timu_na_turnaji('Separate Assassins',305);
 percentualna_narodnost_hracov_hry('Slovak',004);
@@ -462,17 +560,6 @@ END;
 --Explain plan a index
 ------------------------------------------------------------------------------
 --Zobrazi nazov timu, pocet clenov a datum narodenia najstarsieho clena
-EXPLAIN PLAN FOR
-SELECT nazov_timu, count(h_t.hrac), min(osoba.datum_narodenia)
-FROM hrac_hraje_za_tim h_t NATURAL JOIN tim NATURAL JOIN osoba
-WHERE hrac = rodne_cislo
-GROUP BY nazov_timu;
-
-SELECT PLAN_TABLE_OUTPUT FROM TABLE(dbms_xplan.display());
-
-CREATE INDEX tim_index ON tim (nazov_timu);
---CREATE INDEX osoba_index on osoba (datum_narodenia,rodne_cislo);
-
 
 EXPLAIN PLAN FOR
 SELECT nazov_timu, count(h_t.hrac), min(osoba.datum_narodenia)
@@ -482,25 +569,60 @@ GROUP BY nazov_timu;
 
 SELECT PLAN_TABLE_OUTPUT FROM TABLE(dbms_xplan.display());
 
-DROP INDEX tim_index;
+--CREATE INDEX tim_index on tim (nazov_timu);
+
+EXPLAIN PLAN FOR
+SELECT nazov_timu, count(h_t.hrac), min(osoba.datum_narodenia)
+FROM hrac_hraje_za_tim h_t NATURAL JOIN tim NATURAL JOIN osoba
+WHERE hrac = rodne_cislo
+GROUP BY nazov_timu;
+
+SELECT PLAN_TABLE_OUTPUT FROM TABLE(dbms_xplan.display());
+
+--DROP INDEX tim_index;
+
+------------------------------------------------------------------------------
+--Definicia pristupovych prav pre druheho clena
+------------------------------------------------------------------------------
+GRANT ALL PRIVILEGES ON hra TO xvagal00;
+GRANT ALL PRIVILEGES ON hrac TO xvagal00;
+GRANT ALL PRIVILEGES ON hrac_sa_zameriava_na_hru TO xvagal00;
+GRANT ALL PRIVILEGES ON turnaj TO xvagal00;
+GRANT ALL PRIVILEGES ON tim_sa_zucastni_zapasu TO xvagal00;
+GRANT ALL PRIVILEGES ON zapas TO xvagal00;
+GRANT ALL PRIVILEGES ON vybavenie TO xvagal00;
+
+GRANT EXECUTE ON USPESNOST_TIMU_NA_TURNAJI TO xvagal00;
+GRANT EXECUTE ON PERCENTUALNA_NARODNOST_HRACOV_HRY TO xvagal00;
+
+------------------------------------------------------------------------------
+--Materializovany pohlad
+------------------------------------------------------------------------------
 
 
+CREATE MATERIALIZED VIEW LOG ON hrac WITH PRIMARY KEY, ROWID ;
+CREATE MATERIALIZED VIEW LOG ON vybavenie WITH PRIMARY KEY, ROWID;
 
 
+CREATE MATERIALIZED VIEW vybavenie_hracov
+CACHE
+BUILD IMMEDIATE
+REFRESH FAST ON COMMIT
+AS SELECT prezyvka, id_vybavenia, mys, klavesnica, gpu, sluchadla, hrac.ROWID as hrac_rid, vybavenie.ROWID as vybavenie_rid
+FROM vybavenie, hrac
+WHERE vybavenie.vlastnik = hrac.rodne_cislo;
 
 
+GRANT ALL ON vybavenie_hracov TO xvagal00;
 
+SELECT * FROM vybavenie_hracov;
 
+INSERT INTO osoba VALUES (9712043550,'Smlchal','Bodler','Slovak',TO_DATE('1997-12-04','yyyy-mm-dd'), 'odliss@gmail.com', 1);
+INSERT INTO hrac VALUES (9712043550,'Odliss',102);
+INSERT INTO vybavenie VALUES (8,'Lenovo N46', 'Logitech K400', 'NVIDIA GeForce 1080', 'JBL 7', 9712043550);
+COMMIT;
 
-
-
-
-
-
-
-
-
-
+SELECT * FROM vybavenie_hracov;
 
 
 
