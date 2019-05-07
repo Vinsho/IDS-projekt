@@ -443,6 +443,7 @@ WHERE rodne_cislo IN
 --Pokrocile schemata databazy
 ------------------------------------------------------------------------------
 --Test triggerov
+--Samotne triggery sú umiestnené pred vkladaním údajov do tabulky
 ------------------------------------------------------------------------------
 --Test triggeru pre rodne cislo
 ------------------------------------------------------------------------------
@@ -456,7 +457,7 @@ INSERT INTO osoba VALUES (9712043539,'Peter','Novak','Slovak',TO_DATE('1997-12-0
 
 ------------------------------------------------------------------------------
 --Test triggeru pre autoinkrementaciu
--- I napriek tomu, ze sa snazime vlozit do id_vybavenia hodnotu 201, tak vysledna ulozena hodnota bude dalsia v postupnosti auto inkrementacie
+--I napriek tomu, ze sa snazime vlozit do id_vybavenia hodnotu 201, tak vysledna ulozena hodnota bude dalsia v postupnosti auto inkrementacie
 ------------------------------------------------------------------------------
 
 INSERT INTO hrac VALUES (9712043539, 'Peto', 102);
@@ -550,7 +551,6 @@ end;
 ------------------------------------------------------------------------------
 --Zavolanie procedur
 ------------------------------------------------------------------------------
-SET serveroutput ON;
 BEGIN
 uspesnost_timu_na_turnaji('Separate Assassins',305);
 percentualna_narodnost_hracov_hry('Slovak',004);
@@ -569,7 +569,7 @@ GROUP BY nazov_timu;
 
 SELECT PLAN_TABLE_OUTPUT FROM TABLE(dbms_xplan.display());
 
---CREATE INDEX tim_index on tim (nazov_timu);
+CREATE INDEX osoba_index on osoba (datum_narodenia,rodne_cislo);
 
 EXPLAIN PLAN FOR
 SELECT nazov_timu, count(h_t.hrac), min(osoba.datum_narodenia)
@@ -579,11 +579,11 @@ GROUP BY nazov_timu;
 
 SELECT PLAN_TABLE_OUTPUT FROM TABLE(dbms_xplan.display());
 
---DROP INDEX tim_index;
+DROP INDEX osoba_index;
 
-------------------------------------------------------------------------------
+----------------------------------------------------------------------------
 --Definicia pristupovych prav pre druheho clena
-------------------------------------------------------------------------------
+----------------------------------------------------------------------------
 GRANT ALL PRIVILEGES ON hra TO xvagal00;
 GRANT ALL PRIVILEGES ON hrac TO xvagal00;
 GRANT ALL PRIVILEGES ON hrac_sa_zameriava_na_hru TO xvagal00;
